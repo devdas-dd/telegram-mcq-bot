@@ -13,35 +13,39 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 async def main():
     bot = Bot(token=BOT_TOKEN)
 
-    # STRICT ICT PROMPT
     prompt = """
-Generate EXACTLY 25 MCQs strictly from ICT (Information and Communication Technology).
+Generate EXACTLY 15 MCQs strictly from ICT (Information & Communication Technology).
 
-Difficulty distribution:
-- 8 Easy
-- 15 Moderate
-- 2 Hard
+Difficulty distribution (STRICT):
+- 3 Easy level questions
+- 8 Moderate level questions
+- 4 Hard (Advanced) level questions
 
 Target exams:
 EMRS, KVS, NVS, DSSSB
 
-Allowed topics ONLY:
+Allowed ICT topics ONLY:
 - Computer Fundamentals
 - Hardware & Software
-- CPU, ALU, CU
-- Memory
-- Input / Output devices
+- CPU (ALU, CU)
+- Memory (Primary, Secondary)
+- Input & Output Devices
 - Operating System
 - MS Word, Excel, PowerPoint
 - Internet, Email, WWW
-- Networking
+- Networking Basics
 - Cyber Security
+- Digital India / e-Governance
 - ICT in Education
 
 Language:
-Hindi + English (exam oriented)
+Hindi + English (exam-oriented keywords)
 
-Return ONLY valid JSON array:
+STRICT RULES:
+- Do NOT include any non-ICT topic
+- Do NOT add extra text outside JSON
+
+Return ONLY valid JSON ARRAY:
 [
   {
     "question": "",
@@ -64,11 +68,32 @@ Return ONLY valid JSON array:
     )
 
     data = response.json()
-    mcqs = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+    print("FULL GEMINI RESPONSE:", data)
+
+    # SAFETY CHECK
+    if "candidates" not in data:
+        async with bot:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text="⚠️ Gemini API did not return MCQs (quota / limit). Will retry next hour."
+            )
+        return
+
+    raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+
+    try:
+        mcqs = json.loads(raw_text)
+    except Exception:
+        async with bot:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text="⚠️ Gemini returned invalid JSON. Will retry next hour."
+            )
+        return
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
-            message = f"""📘 *ICT MCQ {i}/25*
+            message = f"""📘 *ICT MCQ {i}/15*
 
 ❓ *Question:*  
 {mcq["question"]}
