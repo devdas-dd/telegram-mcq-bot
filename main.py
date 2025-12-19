@@ -14,8 +14,8 @@ async def generate_and_send_quiz():
 
     async with bot:
         await bot.send_message(
-            chat_id=CHANNEL_ID,
-            text="✅ FINAL TEST: Bot can post messages to this channel."
+            chat_id=int(CHANNEL_ID),
+            text="✅ PRIVATE TEST: Bot is working correctly."
         )
 
 if __name__ == "__main__":
