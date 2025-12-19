@@ -13,8 +13,8 @@ async def main():
 
     async with bot:
         await bot.send_message(
-            chat_id=int(CHANNEL_ID),
-            text="✅ PRIVATE MESSAGE TEST: Bot is working."
+            chat_id=CHANNEL_ID,   # ✅ NO int()
+            text="✅ CHANNEL TEST: Bot can post to channel."
         )
 
 if __name__ == "__main__":
