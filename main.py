@@ -4,10 +4,9 @@ import json
 import asyncio
 from telegram import Bot
 
-BOT_TOKEN = os.getenv("8486433772:AAHJbN-weCbcH_vZT9aGgXsrC5AdrmvyEYM")
-CHANNEL_ID = os.getenv("@ictbydev")
-GEMINI_API_KEY = os.getenv("AIzaSyCELzVhga67Pt1KOwKd1L5qN2URPoISBow")
-
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 async def generate_and_send_quiz():
     if not all([BOT_TOKEN, CHANNEL_ID, GEMINI_API_KEY]):
@@ -46,11 +45,15 @@ Return ONLY raw JSON:
 
     bot = Bot(token=BOT_TOKEN)
     async with bot:
-    await bot.send_message(
-        chat_id=CHANNEL_ID,
-        text="✅ TEST: Bot can post messages to this channel."
+        await bot.send_poll(
+            chat_id=CHANNEL_ID,
+            question=mcq["question"][:255],
+            options=mcq["options"],
+            type="quiz",
+            correct_option_id=mcq["correct"],
+            explanation=mcq["explanation"][:200],
+            is_anonymous=False
         )
-
 
 if __name__ == "__main__":
     asyncio.run(generate_and_send_quiz())
