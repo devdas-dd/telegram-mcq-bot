@@ -1,8 +1,8 @@
-name: ICT MCQ Bot (Every 3 Hours)
+name: ICT MCQ Bot (Every 1 Hours)
 
 on:
   schedule:
-    - cron: "0 */3 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
