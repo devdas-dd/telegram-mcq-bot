@@ -6,18 +6,17 @@ from telegram import Bot
 BOT_TOKEN = "8486433772:AAHJbN-weCbcH_vZT9aGgXsrC5AdrmvyEYM"
 CHANNEL_ID = "@ictbydev"
 GEMINI_API_KEY = "AIzaSyCELzVhga67Pt1KOwKd1L5qN2URPoISBow"
+# ============================
 
-# ==========================================
 bot = Bot(token=BOT_TOKEN)
 
-# Prompt for Gemini
 prompt = """
 Generate 1 MCQ for EMRS exam.
 Subject: Computer
-Language: Hindi + English.
-Difficulty: Moderate.
-Give output ONLY in this JSON format:
+Language: Hindi + English
+Difficulty: Moderate
 
+Return ONLY valid JSON in this format:
 {
   "question": "",
   "options": ["", "", "", ""],
@@ -26,7 +25,6 @@ Give output ONLY in this JSON format:
 }
 """
 
-# Gemini API URL
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
 response = requests.post(
@@ -34,28 +32,25 @@ response = requests.post(
     json={
         "contents": [
             {
-                "parts": [{"text": prompt}]
+                "parts": [
+                    {"text": prompt}
+                ]
             }
         ]
     }
 )
 
-# Convert response to text
 result = response.json()
-
-# Debug print (very important)
-print("Gemini Response:", result)
+print("Gemini response:", result)
 
 if "candidates" not in result:
-    raise Exception("Gemini did not return candidates. Check API key / quota.")
+    raise Exception("Gemini did not return candidates")
 
-raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
+text = result["candidates"][0]["content"]["parts"][0]["text"]
 
-json_text = raw_text[raw_text.find("{"): raw_text.rfind("}") + 1]
+json_text = text[text.find("{"): text.rfind("}") + 1]
 mcq = json.loads(json_text)
-)
 
-# Send quiz to Telegram
 bot.send_poll(
     chat_id=CHANNEL_ID,
     question=mcq["question"],
@@ -66,4 +61,5 @@ bot.send_poll(
     is_anonymous=False
 )
 
-print("Quiz sent successfully!")
+print("Quiz sent successfully")
+
