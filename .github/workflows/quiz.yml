@@ -1,6 +1,8 @@
-name: Telegram Bot Test
+name: ICT MCQ Bot (Every 3 Hours)
 
 on:
+  schedule:
+    - cron: "0 */3 * * *"
   workflow_dispatch:
 
 jobs:
@@ -11,17 +13,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install dependency
-        run: pip install python-telegram-bot
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Run bot
+      - name: Run ICT MCQ Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-        run: |
-          python main.py
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python main.py
