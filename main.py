@@ -64,18 +64,19 @@ Return ONLY valid JSON ARRAY:
         json={
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"response_mime_type": "application/json"}
-        }
+        },
+        timeout=60
     )
 
     data = response.json()
     print("FULL GEMINI RESPONSE:", data)
 
-    # SAFETY CHECK
+    # Safety check
     if "candidates" not in data:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ Gemini API did not return MCQs (quota / limit). Will retry next hour."
+                text="⚠️ Gemini API quota reached. MCQs will be posted in the next cycle."
             )
         return
 
@@ -87,7 +88,7 @@ Return ONLY valid JSON ARRAY:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ Gemini returned invalid JSON. Will retry next hour."
+                text="⚠️ Gemini returned invalid format. Will retry in next cycle."
             )
         return
 
