@@ -46,15 +46,11 @@ Return ONLY raw JSON:
 
     bot = Bot(token=BOT_TOKEN)
     async with bot:
-        await bot.send_poll(
-            chat_id=CHANNEL_ID,
-            question=mcq["question"][:255],
-            options=mcq["options"],
-            type="quiz",
-            correct_option_id=mcq["correct"],
-            explanation=mcq["explanation"][:200],
-            is_anonymous=False
+    await bot.send_message(
+        chat_id=CHANNEL_ID,
+        text="✅ TEST: Bot can post messages to this channel."
         )
+
 
 if __name__ == "__main__":
     asyncio.run(generate_and_send_quiz())
