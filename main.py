@@ -42,18 +42,18 @@ Return ONLY raw JSON:
 
     text = data["candidates"][0]["content"]["parts"][0]["text"]
     mcq = json.loads(text)
+    bot = Bot(token=BOT_TOKEN)
 
     bot = Bot(token=BOT_TOKEN)
     async with bot:
-        await bot.send_poll(
+            await bot.send_message(
             chat_id=CHANNEL_ID,
-            question=mcq["question"][:255],
-            options=mcq["options"],
-            type="quiz",
-            correct_option_id=mcq["correct"],
-            explanation=mcq["explanation"][:200],
-            is_anonymous=False
-        )
+            text="✅ FINAL TEST: Bot can post messages to this channel."
+            )
+
+
+    
+)
 
 if __name__ == "__main__":
     asyncio.run(generate_and_send_quiz())
