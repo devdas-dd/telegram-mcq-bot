@@ -41,11 +41,19 @@ response = requests.post(
 )
 
 # Convert response to text
-raw_text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+result = response.json()
 
-# Extract JSON safely
+# Debug print (very important)
+print("Gemini Response:", result)
+
+if "candidates" not in result:
+    raise Exception("Gemini did not return candidates. Check API key / quota.")
+
+raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
+
 json_text = raw_text[raw_text.find("{"): raw_text.rfind("}") + 1]
 mcq = json.loads(json_text)
+)
 
 # Send quiz to Telegram
 bot.send_poll(
