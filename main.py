@@ -35,7 +35,14 @@ async def generate_and_send_quiz():
     })
 
     data = response.json()
-    mcq = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+    print("FULL GEMINI RESPONSE:", data)
+
+text = data["candidates"][0]["content"]["parts"][0]["text"]
+print("RAW TEXT:", text)
+
+mcq = json.loads(text)
+print("PARSED MCQ:", mcq)
+
 
     bot = Bot(token=BOT_TOKEN)
     async with bot:
