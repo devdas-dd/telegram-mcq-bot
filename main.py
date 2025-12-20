@@ -14,45 +14,31 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
 
     prompt = """
-Generate EXACTLY 15 MCQs strictly from ICT (Information & Communication Technology).
+Generate EXACTLY 10 MCQs strictly from ICT (Information & Communication Technology).
 
-Difficulty distribution (STRICT):
-- 3 Easy level questions
-- 8 Moderate level questions
-- 4 Hard (Advanced) level questions
+Difficulty distribution:
+- 2 Easy
+- 6 Moderate
+- 2 Hard
 
 Target exams:
 EMRS, KVS, NVS, DSSSB
 
-Allowed ICT topics ONLY:
-- Computer Fundamentals
-- Hardware & Software
-- CPU (ALU, CU)
-- Memory (Primary, Secondary)
-- Input & Output Devices
-- Operating System
-- MS Word, Excel, PowerPoint
-- Internet, Email, WWW
-- Networking Basics
-- Cyber Security
-- Digital India / e-Governance
-- ICT in Education
-
 Language:
-Hindi + English (exam-oriented keywords)
+Hindi + English (exam oriented)
 
 STRICT RULES:
-- Do NOT include any non-ICT topic
-- Do NOT add extra text outside JSON
+- ONLY ICT topics
+- Explanation must be ONE LINE only
+- Return ONLY valid JSON ARRAY
 
-Return ONLY valid JSON ARRAY:
 [
   {
     "question": "",
     "options": ["", "", "", ""],
     "correct": 0,
     "difficulty": "Easy | Moderate | Hard",
-    "explanation": ""
+    "explanation": "one line only"
   }
 ]
 """
@@ -69,32 +55,31 @@ Return ONLY valid JSON ARRAY:
     )
 
     data = response.json()
-    print("FULL GEMINI RESPONSE:", data)
+    print("GEMINI RESPONSE:", data)
 
-    # Safety check
     if "candidates" not in data:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ Gemini API quota reached. MCQs will be posted in the next cycle."
+                text="⚠️ MCQs will be posted in next cycle."
             )
         return
 
-    raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-
     try:
-        mcqs = json.loads(raw_text)
+        mcqs = json.loads(
+            data["candidates"][0]["content"]["parts"][0]["text"]
+        )
     except Exception:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ Gemini returned invalid format. Will retry in next cycle."
+                text="⚠️ Will retry next cycle."
             )
         return
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
-            message = f"""📘 *ICT MCQ {i}/15*
+            message = f"""📘 *ICT MCQ {i}/10*
 
 ❓ *Question:*  
 {mcq["question"]}
