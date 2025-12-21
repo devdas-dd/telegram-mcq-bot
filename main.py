@@ -12,17 +12,13 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
 
     prompt = """
-Generate EXACTLY 5 MCQs from ICT (Information & Communication Technology).
-
-Difficulty:
-- 1 Easy
-- 3 Moderate
-- 1 Hard
+Generate EXACTLY 25 MCQs from ICT (Information & Communication Technology).
 
 Rules:
 - Hindi with English technical terms
+- Exam oriented
 - Short questions
-- One-line explanation
+- One line explanation
 - Return ONLY valid JSON array
 
 [
@@ -30,8 +26,7 @@ Rules:
     "question": "",
     "options": ["", "", "", ""],
     "correct": 0,
-    "difficulty": "Easy | Moderate | Hard",
-    "explanation": "one short line"
+    "explanation": ""
   }
 ]
 """
@@ -42,58 +37,36 @@ Rules:
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://github.com/",
-            "X-Title": "ICT MCQ Bot"
+            "X-Title": "ICT MCQ Quiz Bot"
         },
         json={
             "model": "gpt-4o-mini",
             "messages": [
-                {"role": "system", "content": "You generate exam MCQs."},
+                {"role": "system", "content": "You create exam MCQs in JSON only."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.3
+            "temperature": 0.2
         },
         timeout=60
     )
 
     data = response.json()
-    print("OPENROUTER RESPONSE:", data)
 
     if "choices" not in data:
-        async with bot:
-            await bot.send_message(
-                chat_id=CHANNEL_ID,
-                text="⚠️ OpenRouter did not return MCQs today."
-            )
         return
 
-    try:
-        mcqs = json.loads(data["choices"][0]["message"]["content"])
-    except Exception:
-        async with bot:
-            await bot.send_message(
-                chat_id=CHANNEL_ID,
-                text="⚠️ Invalid MCQ format. Will retry tomorrow."
-            )
-        return
+    mcqs = json.loads(data["choices"][0]["message"]["content"])
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
-            message = f"""📘 *ICT MCQ {i}/5*
-
-❓ {mcq["question"]}
-
-A️⃣ {mcq["options"][0]}
-B️⃣ {mcq["options"][1]}
-C️⃣ {mcq["options"][2]}
-D️⃣ {mcq["options"][3]}
-
-✅ Answer: {chr(65 + mcq["correct"])}
-📝 {mcq["explanation"]}
-"""
-            await bot.send_message(
+            await bot.send_poll(
                 chat_id=CHANNEL_ID,
-                text=message,
-                parse_mode="Markdown"
+                question=f"Q{i}. {mcq['question']}",
+                options=mcq["options"],
+                type="quiz",
+                correct_option_id=mcq["correct"],
+                explanation=mcq["explanation"],
+                is_anonymous=False
             )
 
 if __name__ == "__main__":
