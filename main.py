@@ -4,33 +4,26 @@ import requests
 import json
 from telegram import Bot
 
-# ===== Secrets from GitHub =====
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# ===============================
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
 
     prompt = """
-Generate EXACTLY 10 MCQs strictly from ICT (Information & Communication Technology).
+Generate EXACTLY 5 MCQs from ICT (Information & Communication Technology).
 
-Difficulty distribution:
-- 2 Easy
-- 6 Moderate
-- 2 Hard
+Difficulty:
+- 1 Easy
+- 3 Moderate
+- 1 Hard
 
-Target exams:
-EMRS, KVS, NVS, DSSSB
-
-Language:
-Hindi + English (exam oriented)
-
-STRICT RULES:
-- ONLY ICT topics
-- Explanation must be ONE LINE only
-- Return ONLY valid JSON ARRAY
+Rules:
+- Hindi with English technical terms
+- Short questions
+- One-line explanation
+- Return ONLY valid JSON array
 
 [
   {
@@ -38,63 +31,64 @@ STRICT RULES:
     "options": ["", "", "", ""],
     "correct": 0,
     "difficulty": "Easy | Moderate | Hard",
-    "explanation": "one line only"
+    "explanation": "one short line"
   }
 ]
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-
     response = requests.post(
-        url,
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/",
+            "X-Title": "ICT MCQ Bot"
+        },
         json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"response_mime_type": "application/json"}
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "system", "content": "You generate exam MCQs."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3
         },
         timeout=60
     )
 
     data = response.json()
-    print("GEMINI RESPONSE:", data)
+    print("OPENROUTER RESPONSE:", data)
 
-    if "candidates" not in data:
+    if "choices" not in data:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ MCQs will be posted in next cycle."
+                text="⚠️ OpenRouter did not return MCQs today."
             )
         return
 
     try:
-        mcqs = json.loads(
-            data["candidates"][0]["content"]["parts"][0]["text"]
-        )
+        mcqs = json.loads(data["choices"][0]["message"]["content"])
     except Exception:
         async with bot:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text="⚠️ Will retry next cycle."
+                text="⚠️ Invalid MCQ format. Will retry tomorrow."
             )
         return
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
-            message = f"""📘 *ICT MCQ {i}/10*
+            message = f"""📘 *ICT MCQ {i}/5*
 
-❓ *Question:*  
-{mcq["question"]}
+❓ {mcq["question"]}
 
-A️⃣ {mcq["options"][0]}  
-B️⃣ {mcq["options"][1]}  
-C️⃣ {mcq["options"][2]}  
+A️⃣ {mcq["options"][0]}
+B️⃣ {mcq["options"][1]}
+C️⃣ {mcq["options"][2]}
 D️⃣ {mcq["options"][3]}
 
-🎯 *Level:* {mcq["difficulty"]}
-
-✅ *Correct Answer:* {chr(65 + mcq["correct"])}
-
-📝 *Explanation:*  
-{mcq["explanation"]}
+✅ Answer: {chr(65 + mcq["correct"])}
+📝 {mcq["explanation"]}
 """
             await bot.send_message(
                 chat_id=CHANNEL_ID,
