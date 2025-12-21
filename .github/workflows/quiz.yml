@@ -2,7 +2,7 @@ name: ICT MCQ Bot (Every 1 Hours)
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "30 14 * * *"
   workflow_dispatch:
 
 jobs:
