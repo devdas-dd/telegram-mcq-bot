@@ -1,4 +1,4 @@
-name: ICT MCQ Bot (Every 1 Hours)
+name: ICT MCQ Bot
 
 on:
   schedule:
