@@ -66,7 +66,7 @@ FORMAT (STRICT):
     if raw_text.startswith("```"):
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
 
-    # Safety: ensure it starts with JSON array
+    # Safety: ensure JSON array
     if not raw_text.startswith("["):
         async with bot:
             await bot.send_message(
@@ -87,15 +87,24 @@ FORMAT (STRICT):
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
-            await bot.send_poll(
-                chat_id=CHANNEL_ID,
-                question=f"Q{i}. {mcq['question']}",
-                options=mcq["options"],
-                type="quiz",
-                correct_option_id=int(mcq["correct"]),
-                explanation=mcq["explanation"],
-                is_anonymous=True
-            )
+            try:
+                await bot.send_poll(
+                    chat_id=CHANNEL_ID,
+                    question=f"Q{i}. {mcq['question']}",
+                    options=mcq["options"],
+                    type="quiz",
+                    correct_option_id=int(mcq["correct"]),
+                    explanation=mcq["explanation"],
+                    is_anonymous=True
+                )
+
+                # Telegram rate-limit protection
+                await asyncio.sleep(3)
+
+            except Exception as e:
+                print(f"Poll {i} failed:", e)
+                await asyncio.sleep(5)
+                continue
 
 if __name__ == "__main__":
     asyncio.run(main())
