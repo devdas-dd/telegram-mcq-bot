@@ -13,19 +13,48 @@ async def main():
 
     prompt = """
 You MUST return ONLY a valid JSON array.
-Do NOT add explanations, headings, markdown, or code fences.
-Do NOT write any text before or after JSON.
+Do NOT add headings, markdown, or any text outside JSON.
 
-Generate EXACTLY 25 MCQs from ICT (Information & Communication Technology).
+Generate EXACTLY 25 MCQs strictly from Computer / ICT syllabus for Indian competitive exams.
 
-Rules:
-- Hindi with English technical terms
-- Exam oriented
-- One line explanation
-- Short questions
-- Strict JSON only
+SYLLABUS FOCUS (STRICT):
+- Fundamentals of Computer System
+- Computer characteristics
+- Computer organization (CPU, RAM, ROM, File System)
+- Input & Output Devices
+- Computer Hardware & Software and their relationship
+- Operating System (Basics)
+- MS Office (Word, Excel/Spreadsheet, PowerPoint)
+- Keyboard shortcuts and their uses
+- Important computer terms & abbreviations
+- Computer Networks
+- Internet & Email
+- Cyber Security
+- Information Technology & Society
+- IT Act, Digital Signature
+- e-Governance & use of IT in Government
+- Mobile / Smartphone technology
+- Information Kiosk
 
-FORMAT (STRICT):
+QUESTION FORMAT (MANDATORY):
+- First line: English
+- Second line: Hindi
+Example:
+"ENIAC belongs to which generation of computers?
+ENIAC कंप्यूटर की किस पीढ़ी से संबंधित है?"
+
+RULES:
+- Exam oriented (NVS, KVS, UGC NET, CTET, Govt Exams)
+- Language: English + Hindi in every question
+- Options can be English
+- Explanation: ONE short line only
+- Include 2–3 exam hashtags at the END of explanation
+  (example: #NVS #KVS #Computer_Quiz)
+
+HASHTAGS TO ROTATE:
+#ICT #NVS #KVS #UGCNET #CTET #GovtExams #Computer_Quiz
+
+STRICT JSON FORMAT:
 [
   {
     "question": "",
