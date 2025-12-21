@@ -12,15 +12,20 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
 
     prompt = """
+You MUST return ONLY a valid JSON array.
+Do NOT add explanations, headings, markdown, or code fences.
+Do NOT write any text before or after JSON.
+
 Generate EXACTLY 25 MCQs from ICT (Information & Communication Technology).
 
 Rules:
 - Hindi with English technical terms
 - Exam oriented
-- Short questions
 - One line explanation
-- Return ONLY valid JSON array
+- Short questions
+- Strict JSON only
 
+FORMAT (STRICT):
 [
   {
     "question": "",
@@ -55,7 +60,30 @@ Rules:
     if "choices" not in data:
         return
 
-    mcqs = json.loads(data["choices"][0]["message"]["content"])
+    raw_text = data["choices"][0]["message"]["content"].strip()
+
+    # Remove markdown code blocks if present
+    if raw_text.startswith("```"):
+        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+
+    # Safety: ensure it starts with JSON array
+    if not raw_text.startswith("["):
+        async with bot:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text="⚠️ AI response was not valid JSON today. Will retry next cycle."
+            )
+        return
+
+    try:
+        mcqs = json.loads(raw_text)
+    except json.JSONDecodeError:
+        async with bot:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text="⚠️ JSON parse failed. Will retry next cycle."
+            )
+        return
 
     async with bot:
         for i, mcq in enumerate(mcqs, start=1):
@@ -64,7 +92,7 @@ Rules:
                 question=f"Q{i}. {mcq['question']}",
                 options=mcq["options"],
                 type="quiz",
-                correct_option_id=mcq["correct"],
+                correct_option_id=int(mcq["correct"]),
                 explanation=mcq["explanation"],
                 is_anonymous=False
             )
