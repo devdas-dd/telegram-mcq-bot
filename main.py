@@ -94,7 +94,7 @@ FORMAT (STRICT):
                 type="quiz",
                 correct_option_id=int(mcq["correct"]),
                 explanation=mcq["explanation"],
-                is_anonymous=False
+                is_anonymous=True
             )
 
 if __name__ == "__main__":
