@@ -1,5 +1,3 @@
-name: ICT MCQ Bot
-
 on:
   schedule:
     - cron: "30 2 * * *"
@@ -9,7 +7,6 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -26,5 +23,15 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # ← changed
         run: python main.py
+
+      # ✅ This saves used_questions.json back to your repo after every run
+      - name: Save used questions (prevent repeats)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add used_questions.json
+          git diff --staged --quiet || git commit -m "chore: update used questions [skip ci]"
+          git push
