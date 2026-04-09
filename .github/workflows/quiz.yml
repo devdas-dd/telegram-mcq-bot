@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write        # ← this line fixes the 403 error
+  contents: write
 
 jobs:
   run-bot:
@@ -14,12 +14,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}   # ← add this too
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"               # ← updated from 3.10
+          python-version: "3.11"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -30,6 +30,10 @@ jobs:
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
+
+      - name: Show bot log        # ← ADD THIS
+        if: always()
+        run: cat bot.log || echo "No log file found"
 
       - name: Save used questions (prevent repeats)
         if: always()
