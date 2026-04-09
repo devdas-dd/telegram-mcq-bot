@@ -20,18 +20,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ===== CONFIG =====
-BOT_TOKEN      = os.getenv("BOT_TOKEN")
-CHANNEL_ID     = os.getenv("CHANNEL_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+BOT_TOKEN    = os.getenv("BOT_TOKEN")
+CHANNEL_ID   = os.getenv("CHANNEL_ID")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")   # Free at console.groq.com
 
 USED_FILE = "used_questions.json"
 
-# Try models in order — all FREE on Google AI Studio
-GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
+# Groq free models — tried in order
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "gemma2-9b-it",
+    "mixtral-8x7b-32768",
 ]
 
 # ===== TOPIC ROTATION =====
@@ -75,29 +75,37 @@ def validate_mcq(mcq: dict) -> bool:
     except AssertionError:
         return False
 
-def call_gemini(prompt: str, model: str) -> str | None:
-    """Call one Gemini model. Returns raw text or None on any error."""
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={GEMINI_API_KEY}"
-    )
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 8192
-        }
-    }
+def call_groq(prompt: str, model: str) -> str | None:
+    """Call Groq API. Returns raw text or None on error."""
     try:
-        resp = requests.post(url, json=payload, timeout=90)
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert MCQ generator for Indian competitive exams. Return ONLY valid JSON arrays, no markdown, no extra text."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.7,
+                "max_tokens": 8000
+            },
+            timeout=90
+        )
         if not resp.ok:
             logger.warning(f"[{model}] HTTP {resp.status_code}: {resp.text[:400]}")
             return None
         data = resp.json()
-        if "candidates" not in data:
-            logger.warning(f"[{model}] No candidates: {json.dumps(data)[:400]}")
-            return None
-        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        text = data["choices"][0]["message"]["content"].strip()
         logger.info(f"[{model}] Got {len(text)} chars")
         return text
     except Exception as e:
@@ -105,12 +113,13 @@ def call_gemini(prompt: str, model: str) -> str | None:
         return None
 
 def parse_mcq_json(raw: str, model: str) -> list | None:
+    """Extract JSON array from raw text."""
     if "```" in raw:
         raw = raw.replace("```json", "").replace("```", "").strip()
     start = raw.find("[")
     end   = raw.rfind("]")
     if start == -1 or end == -1:
-        logger.warning(f"[{model}] No JSON array. Sample: {raw[:200]}")
+        logger.warning(f"[{model}] No JSON array found. Sample: {raw[:200]}")
         return None
     try:
         mcqs = json.loads(raw[start:end+1])
@@ -121,54 +130,55 @@ def parse_mcq_json(raw: str, model: str) -> list | None:
         return None
 
 def fetch_mcqs(topic: str, batch_num: int = 1) -> list | None:
-    """Try all Gemini models until one works."""
-    prompt = f"""You MUST return ONLY a valid JSON array. No markdown, no extra text.
+    """Try all Groq models until one returns valid MCQs."""
+    prompt = f"""You MUST return ONLY a valid JSON array. No markdown, no extra text whatsoever.
 
 Generate EXACTLY 25 UNIQUE MCQs on Computer Science / ICT for Indian competitive exams.
 Topic: {topic}
-Batch: {batch_num} — questions must differ from other batches.
+Batch: {batch_num} — make questions different from other batches.
 
 TARGET EXAMS: UGC NET JRF, NVS TGT/PGT, KVS TGT/PGT, CTET, MPPSC, UPPSC, DSSSB, REET, HTET
 
-Write BOTH English and Hindi for every question on separate lines.
-Example question field: "What is RAM?\\nRAM क्या है?"
+Each question MUST have both English and Hindi on separate lines.
+Example: "What does CPU stand for?\\nCPU का पूर्ण रूप क्या है?"
 
 RULES:
-- Both English + Hindi in every question
-- Concept-based questions, less common ones
+- English + Hindi in every question (mandatory)
+- Concept-based, less commonly repeated questions
 - 4 clearly distinct options
 - Explanation: 1-2 lines + hashtags #UGC_NET #KVS #NVS #MPPSC #UPPSC #ICT
 
-RETURN ONLY THIS JSON:
+RETURN ONLY THIS JSON ARRAY (nothing else before or after):
 [
   {{
-    "question": "English?\\nHindi?",
-    "options": ["A", "B", "C", "D"],
+    "question": "English question?\\nHindi question?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
     "correct": 0,
-    "explanation": "Brief explanation. #UGC_NET #KVS #ICT"
+    "explanation": "Short explanation. #UGC_NET #KVS #ICT"
   }}
 ]"""
 
-    for model in GEMINI_MODELS:
+    for model in GROQ_MODELS:
         logger.info(f"Trying [{model}] batch {batch_num}...")
-        raw = call_gemini(prompt, model)
+        raw = call_groq(prompt, model)
         if not raw:
             continue
         mcqs = parse_mcq_json(raw, model)
-        if mcqs:
+        if mcqs and len(mcqs) > 0:
+            logger.info(f"✅ [{model}] success — {len(mcqs)} MCQs")
             return mcqs
-        logger.warning(f"[{model}] no valid MCQs, trying next model...")
+        logger.warning(f"[{model}] no valid MCQs, trying next...")
 
-    logger.error("All Gemini models failed.")
+    logger.error("❌ All Groq models failed.")
     return None
 
 async def main():
-    logger.info(f"BOT_TOKEN set:      {bool(BOT_TOKEN)}")
-    logger.info(f"CHANNEL_ID set:     {bool(CHANNEL_ID)}")
-    logger.info(f"GEMINI_API_KEY set: {bool(GEMINI_API_KEY)}")
+    logger.info(f"BOT_TOKEN set:    {bool(BOT_TOKEN)}")
+    logger.info(f"CHANNEL_ID set:   {bool(CHANNEL_ID)}")
+    logger.info(f"GROQ_API_KEY set: {bool(GROQ_API_KEY)}")
 
-    if not GEMINI_API_KEY:
-        logger.error("GEMINI_API_KEY missing — check GitHub Secrets!")
+    if not GROQ_API_KEY:
+        logger.error("GROQ_API_KEY missing — add it to GitHub Secrets!")
         return
 
     request = HTTPXRequest(connect_timeout=15, read_timeout=30)
@@ -177,13 +187,14 @@ async def main():
     today_topic = get_today_topic()
     logger.info(f"Today topic: {today_topic}")
 
+    # Fetch 2 batches of 25 = 50 MCQs total
     all_mcqs = []
     for batch in range(1, 3):
         logger.info(f"--- Batch {batch}/2 ---")
         mcqs = fetch_mcqs(today_topic, batch_num=batch)
         if mcqs:
             all_mcqs.extend(mcqs)
-        await asyncio.sleep(4)
+        await asyncio.sleep(3)
 
     if not all_mcqs:
         async with bot:
@@ -193,13 +204,14 @@ async def main():
             )
         return
 
+    # Deduplicate
     used_hashes = load_used_hashes()
     unique_mcqs = []
     new_hashes  = []
 
     for mcq in all_mcqs:
         if not validate_mcq(mcq):
-            logger.warning(f"Invalid MCQ: {str(mcq)[:80]}")
+            logger.warning(f"Invalid MCQ skipped: {str(mcq)[:80]}")
             continue
         h = question_hash(mcq["question"])
         if h not in used_hashes:
@@ -218,6 +230,7 @@ async def main():
 
     unique_mcqs = unique_mcqs[:50]
 
+    # Send everything in ONE async with block
     async with bot:
         day_name = datetime.utcnow().strftime("%A")
         await bot.send_message(
@@ -284,7 +297,7 @@ async def main():
 
     used_hashes.update(new_hashes)
     save_used_hashes(used_hashes)
-    logger.info(f"Saved {len(new_hashes)} new hashes. Total: {len(used_hashes)}")
+    logger.info(f"Saved {len(new_hashes)} hashes. Total: {len(used_hashes)}")
 
 if __name__ == "__main__":
     asyncio.run(main())
