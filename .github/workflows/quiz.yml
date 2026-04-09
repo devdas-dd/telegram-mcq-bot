@@ -4,17 +4,22 @@ on:
     - cron: "30 14 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write        # ← this line fixes the 403 error
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}   # ← add this too
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"               # ← updated from 3.10
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -23,10 +28,9 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # ← changed
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
-      # ✅ This saves used_questions.json back to your repo after every run
       - name: Save used questions (prevent repeats)
         if: always()
         run: |
